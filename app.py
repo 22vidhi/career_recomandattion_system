@@ -1,6 +1,10 @@
 import streamlit as st
 import os
 import tempfile
+from dotenv import load_dotenv
+
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"), override=False)
 
 from modules.resume_parser     import parse_resume
 from modules.career_recommender import recommend_careers
@@ -37,6 +41,7 @@ st.markdown("""
         padding: 1rem;
         border-radius: 8px;
         margin-bottom: 1rem;
+        color: #333333;
     }
     .job-card {
         background: #f9f9f9;
@@ -44,6 +49,7 @@ st.markdown("""
         padding: 1rem;
         border-radius: 8px;
         margin-bottom: 0.8rem;
+        color: #333333;
     }
     .score-badge {
         background-color: #1F497D;
@@ -96,13 +102,16 @@ with tab1:
 
     if uploaded_file:
         suffix = ".pdf" if uploaded_file.name.endswith(".pdf") else ".docx"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(uploaded_file.read())
-            tmp_path = tmp.name
+        # Save original file so we can edit it later
+        os.makedirs("uploads/resumes", exist_ok=True)
+        permanent_path = os.path.join("uploads", "resumes", f"latest_upload{suffix}")
+        
+        with open(permanent_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        st.session_state["uploaded_resume_path"] = permanent_path
 
         with st.spinner("Parsing resume..."):
-            parsed_data = parse_resume(tmp_path)
-        os.unlink(tmp_path)
+            parsed_data = parse_resume(permanent_path)
 
         st.success("✅ Resume parsed successfully!")
         col1, col2 = st.columns(2)
@@ -203,10 +212,12 @@ with tab3:
 
     if st.button("🔍 Search Jobs"):
         with st.spinner(f"Fetching jobs for {search_career} in {search_location}..."):
-            jobs = fetch_jobs(search_career, search_location, results=6)
+            user_skills = st.session_state.get("all_skills", [])
+            jobs = fetch_jobs(search_career, search_location, results=6, user_skills=user_skills)
 
         if jobs:
-            st.success(f"Found {len(jobs)} job(s)!")
+            unique_companies = len(set(job['company'] for job in jobs))
+            st.success(f"Found {len(jobs)} customized job(s) from {unique_companies} companies matching your profile in {search_location}!")
             for job in jobs:
                 st.markdown(f"""
                 <div class="job-card">
@@ -248,12 +259,14 @@ with tab4:
             output_path = "uploads/resumes/improved_resume.docx"
             os.makedirs("uploads/resumes", exist_ok=True)
 
-            with st.spinner("Generating your improved resume..."):
+            original_path = st.session_state.get("uploaded_resume_path")
+            with st.spinner("Modifying your resume..."):
                 path = generate_resume(
                     user_data=user_data,
                     recommended_career=top["career"],
                     missing_skills=top["missing_skills"],
-                    output_path=output_path
+                    output_path=output_path,
+                    original_path=original_path
                 )
 
             st.success("✅ Resume generated successfully!")

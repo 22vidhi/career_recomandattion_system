@@ -1,8 +1,3 @@
-from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
-
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
 CAREER_PROFILES = {
     "Data Scientist": {
         "skills": ["python", "machine learning", "deep learning", "pandas", "numpy",

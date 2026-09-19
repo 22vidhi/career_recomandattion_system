@@ -4,28 +4,47 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 import os
 
 
-def generate_resume(user_data: dict, recommended_career: str, missing_skills: list, output_path: str) -> str:
+def generate_resume(user_data: dict, recommended_career: str, missing_skills: list, output_path: str, original_path: str = None) -> str:
     """
     Generate an improved resume in DOCX format.
 
-    user_data keys:
-        name, email, phone, location, education, skills, experience, interests
+    If a valid DOCX file was uploaded, we append the AI recommendations directly to it.
+    Otherwise we generate a brand new formatted document from scratch.
     """
-    doc = Document()
+    is_editing = False
+    if original_path and original_path.lower().endswith('.docx') and os.path.exists(original_path):
+        try:
+            doc = Document(original_path)
+            is_editing = True
+        except Exception:
+            doc = Document()
+    else:
+        doc = Document()
 
     # ── Page margins ──────────────────────────────────────────────────────────
-    section = doc.sections[0]
-    section.top_margin    = Inches(0.8)
-    section.bottom_margin = Inches(0.8)
-    section.left_margin   = Inches(1.0)
-    section.right_margin  = Inches(1.0)
+    if not is_editing:
+        section = doc.sections[0]
+        section.top_margin    = Inches(0.8)
+        section.bottom_margin = Inches(0.8)
+        section.left_margin   = Inches(1.0)
+        section.right_margin  = Inches(1.0)
 
     def add_heading(text, level=1, color=(31, 73, 125)):
-        p = doc.add_heading(text, level=level)
-        run = p.runs[0] if p.runs else p.add_run(text)
+        p = doc.add_paragraph()
+        run = p.add_run(text)
+        run.font.size = Pt(16 if level == 1 else 14)
         run.font.color.rgb = RGBColor(*color)
         run.font.bold = True
+        p.paragraph_format.space_before = Pt(14)
+        p.paragraph_format.space_after = Pt(6)
         return p
+        
+    def add_bullet(text):
+        try:
+            p = doc.add_paragraph(style="List Bullet")
+            p.add_run(text)
+        except KeyError:
+            doc.add_paragraph("• " + text)
 
     def add_section_divider():
         p = doc.add_paragraph()
@@ -35,81 +54,125 @@ def generate_resume(user_data: dict, recommended_career: str, missing_skills: li
         run.font.color.rgb = RGBColor(180, 180, 180)
         run.font.size = Pt(8)
 
-    # ── Header: Name & Contact ────────────────────────────────────────────────
-    name_para = doc.add_paragraph()
-    name_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    name_run = name_para.add_run(user_data.get("name", "Your Name"))
-    name_run.bold = True
-    name_run.font.size = Pt(22)
-    name_run.font.color.rgb = RGBColor(31, 73, 125)
-
-    contact_para = doc.add_paragraph()
-    contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    contact_info = " | ".join(filter(None, [
-        user_data.get("email", ""),
-        user_data.get("phone", ""),
-        user_data.get("location", "")
-    ]))
-    contact_run = contact_para.add_run(contact_info)
-    contact_run.font.size = Pt(10)
-    contact_run.font.color.rgb = RGBColor(80, 80, 80)
-
-    add_section_divider()
-
-    # ── Career Objective ──────────────────────────────────────────────────────
-    add_heading("Career Objective", level=2)
-    objective = (
-        f"Motivated and skilled professional seeking a {recommended_career} role. "
-        f"Passionate about leveraging technical expertise and continuously learning "
-        f"to deliver impactful solutions."
-    )
-    doc.add_paragraph(objective)
-
-    # ── Education ─────────────────────────────────────────────────────────────
-    add_heading("Education", level=2)
-    education = user_data.get("education", ["Not Provided"])
-    for edu in (education if isinstance(education, list) else [education]):
-        p = doc.add_paragraph(style="List Bullet")
-        p.add_run(edu.title())
-
-    # ── Skills ────────────────────────────────────────────────────────────────
-    add_heading("Technical Skills", level=2)
-    skills = user_data.get("skills", [])
-    if skills:
-        p = doc.add_paragraph()
-        p.add_run(", ".join(s.title() for s in skills))
-
-    # ── Recommended Career ────────────────────────────────────────────────────
-    add_heading("Target Role", level=2)
-    doc.add_paragraph(f"Recommended Career Path:  {recommended_career}")
-
-    # ── Skills to Improve ─────────────────────────────────────────────────────
-    if missing_skills:
-        add_heading("Skills to Acquire / Improve", level=2)
-        for skill in missing_skills:
-            p = doc.add_paragraph(style="List Bullet")
-            p.add_run(skill.title())
-
-    # ── Experience ────────────────────────────────────────────────────────────
-    experience = user_data.get("experience", "")
-    if experience:
-        add_heading("Experience", level=2)
-        doc.add_paragraph(experience)
-
-    # ── Interests ─────────────────────────────────────────────────────────────
-    interests = user_data.get("interests", "")
-    if interests:
-        add_heading("Interests", level=2)
-        doc.add_paragraph(interests)
-
-    # ── Footer note ───────────────────────────────────────────────────────────
-    add_section_divider()
-    footer_para = doc.add_paragraph()
-    footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    footer_run = footer_para.add_run("Generated by Career Recommendation System")
-    footer_run.font.size = Pt(8)
-    footer_run.font.color.rgb = RGBColor(150, 150, 150)
-    footer_run.italic = True
+    if is_editing:
+        add_section_divider()
+        
+        # Add a nice highlighted title
+        title_p = doc.add_paragraph()
+        title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        title_run = title_p.add_run("✨ AI CAREER RECOMMENDATION & RESUME REVIEW ✨")
+        title_run.bold = True
+        title_run.font.size = Pt(14)
+        title_run.font.color.rgb = RGBColor(31, 73, 125)
+        title_p.paragraph_format.space_before = Pt(16)
+        title_p.paragraph_format.space_after = Pt(12)
+        
+        intro_p = doc.add_paragraph()
+        intro_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        intro_p.add_run("Based on an analysis of your skills and experience, your ideal Target Role is:")
+        
+        # Big bold target role
+        path_p = doc.add_paragraph()
+        path_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        path_run = path_p.add_run(f"{recommended_career.upper()}")
+        path_run.bold = True
+        path_run.font.size = Pt(16)
+        path_run.font.color.rgb = RGBColor(0, 102, 204)
+        path_p.paragraph_format.space_after = Pt(16)
+        
+        if missing_skills:
+            skill_p = doc.add_paragraph()
+            skill_run = skill_p.add_run("🚀 To improve your chances for this role, we recommend acquiring the following skills:")
+            skill_run.bold = True
+            skill_run.font.color.rgb = RGBColor(50, 50, 50)
+            
+            for skill in missing_skills:
+                add_bullet(skill.title())
+        
+        doc.add_paragraph()
+        add_section_divider()
+        
+        footer_para = doc.add_paragraph()
+        footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        footer_run = footer_para.add_run("Generated by Career Recommendation System • AI Analysis")
+        footer_run.font.size = Pt(9)
+        footer_run.font.color.rgb = RGBColor(140, 140, 140)
+        footer_run.italic = True
+        
+    else:
+        # ── Header: Name & Contact ────────────────────────────────────────────────
+        name_para = doc.add_paragraph()
+        name_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        name_run = name_para.add_run(user_data.get("name", "Your Name"))
+        name_run.bold = True
+        name_run.font.size = Pt(22)
+        name_run.font.color.rgb = RGBColor(31, 73, 125)
+    
+        contact_para = doc.add_paragraph()
+        contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        contact_info = " | ".join(filter(None, [
+            user_data.get("email", ""),
+            user_data.get("phone", ""),
+            user_data.get("location", "")
+        ]))
+        contact_run = contact_para.add_run(contact_info)
+        contact_run.font.size = Pt(10)
+        contact_run.font.color.rgb = RGBColor(80, 80, 80)
+    
+        add_section_divider()
+    
+        # ── Career Objective ──────────────────────────────────────────────────────
+        add_heading("Career Objective", level=2)
+        objective = (
+            f"Motivated and skilled professional seeking a {recommended_career} role. "
+            f"Passionate about leveraging technical expertise and continuously learning "
+            f"to deliver impactful solutions."
+        )
+        doc.add_paragraph(objective)
+    
+        # ── Education ─────────────────────────────────────────────────────────────
+        add_heading("Education", level=2)
+        education = user_data.get("education", ["Not Provided"])
+        for edu in (education if isinstance(education, list) else [education]):
+            add_bullet(edu.title())
+    
+        # ── Skills ────────────────────────────────────────────────────────────────
+        add_heading("Technical Skills", level=2)
+        skills = user_data.get("skills", [])
+        if skills:
+            p = doc.add_paragraph()
+            p.add_run(", ".join(s.title() for s in skills))
+    
+        # ── Recommended Career ────────────────────────────────────────────────────
+        add_heading("Target Role", level=2)
+        doc.add_paragraph(f"Recommended Career Path:  {recommended_career}")
+    
+        # ── Skills to Improve ─────────────────────────────────────────────────────
+        if missing_skills:
+            add_heading("Skills to Acquire / Improve", level=2)
+            for skill in missing_skills:
+                add_bullet(skill.title())
+    
+        # ── Experience ────────────────────────────────────────────────────────────
+        experience = user_data.get("experience", "")
+        if experience:
+            add_heading("Experience", level=2)
+            doc.add_paragraph(experience)
+    
+        # ── Interests ─────────────────────────────────────────────────────────────
+        interests = user_data.get("interests", "")
+        if interests:
+            add_heading("Interests", level=2)
+            doc.add_paragraph(interests)
+    
+        # ── Footer note ───────────────────────────────────────────────────────────
+        add_section_divider()
+        footer_para = doc.add_paragraph()
+        footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        footer_run = footer_para.add_run("Generated by Career Recommendation System")
+        footer_run.font.size = Pt(8)
+        footer_run.font.color.rgb = RGBColor(150, 150, 150)
+        footer_run.italic = True
 
     # ── Save ──────────────────────────────────────────────────────────────────
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

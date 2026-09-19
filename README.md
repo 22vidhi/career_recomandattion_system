@@ -7,7 +7,7 @@ An intelligent career recommendation platform built with Python and Streamlit.
 ## 🚀 Features
 - Resume Upload & Parsing (PDF / DOCX)
 - Career Recommendation with Match Score
-- Real-Time Job Listings (Adzuna + RapidAPI)
+- Real-Time Job Listings (Adzuna)
 - Resume Generator & Download
 - Human-in-the-Loop Feedback System
 
@@ -44,7 +44,6 @@ python -m spacy download en_core_web_sm
 ```
 ADZUNA_APP_ID=your_id_here
 ADZUNA_APP_KEY=your_key_here
-RAPIDAPI_KEY=your_key_here
 ```
 
 ### 3. Run the app
@@ -59,4 +58,3 @@ streamlit run app.py
 | API | Link | Free Tier |
 |-----|------|-----------|
 | Adzuna | https://developer.adzuna.com | ✅ Yes |
-| RapidAPI JSearch | https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch | ✅ Yes |
