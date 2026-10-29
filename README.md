@@ -37,7 +37,6 @@ career_recommendation_app/
 ### 1. Install dependencies
 ```bash
 pip install -r requirements.txt
-python -m spacy download en_core_web_sm
 ```
 
 ### 2. Add your API keys in `.env`

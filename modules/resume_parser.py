@@ -1,15 +1,6 @@
 import pdfplumber
 import docx
 import re
-import spacy
-
-# Load spaCy model
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    import os
-    os.system("python -m spacy download en_core_web_sm")
-    nlp = spacy.load("en_core_web_sm")
 
 SKILL_KEYWORDS = [
     "python", "java", "c++", "c#", "javascript", "typescript", "sql", "r", "matlab",
